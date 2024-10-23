@@ -1,30 +1,58 @@
 import { Args, Mutation, Resolver, Query, Context } from '@nestjs/graphql';
 import { UsersService } from './users.service';
-import { RegisterRepose } from './types/user.types';
-import { RegisterDto } from './dto/user.dto';
-import { BadRequestException } from '@nestjs/common';
+import { ActivationDto, RegisterInput, LoginDto } from './dto/user.dto';
+import { BadRequestException, UseGuards } from '@nestjs/common';
 import { User } from './entities/user.entity';
 import { Response } from 'express';
+import { AuthGuard } from './guards/auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
 
-@Resolver('User')
-//@UserFilters
+@Resolver(() => User)
 export class UsersResolver {
   constructor(private readonly userService: UsersService) {}
 
-  @Mutation(() => RegisterRepose)
+  @Mutation(() => User)
   async register(
-    @Args('registerInput') registerDto: RegisterDto,
+    @Args('registerInput') registerInput: RegisterInput,
     @Context() context: { res: Response },
-  ): Promise<RegisterRepose> {
-    if (!registerDto.name || !registerDto.email || !registerDto.password) {
-      throw new BadRequestException('Please fill the all fields');
+  ): Promise<User> {
+    if (
+      !registerInput.email ||
+      !registerInput.password ||
+      !registerInput.phone_number
+    ) {
+      throw new BadRequestException('Бүх талбарыг бөглөнө үү!');
     }
-    const user = await this.userService.register(registerDto, context.res);
-    return { user };
+    const { user, activationToken } = await this.userService.register(
+      registerInput,
+      context.res,
+    );
+    return { user, activationToken } as any; // as any нэмж түр зуур алдаа арилгав
   }
 
-  @Query(() => [User])
-  async getUsers() {
-    return this.userService.getUsers();
+  @Mutation(() => User)
+  async activateUser(
+    @Args('activationInput') activationInput: ActivationDto,
+    @Context() context: { res: Response },
+  ): Promise<User> {
+    const { user } = await this.userService.activationUser(
+      activationInput,
+      context.res,
+    );
+    return user;
+  }
+
+  @Mutation(() => User)
+  async login(
+    @Args('loginInput') loginDto: LoginDto,
+    @Context() context: { res: Response },
+  ): Promise<User> {
+    return await this.userService.login(loginDto);
+  }
+
+  @Query(() => User)
+  @UseGuards(AuthGuard)
+  async getLoggedInUser(@CurrentUser() user: User): Promise<User> {
+    return user;
   }
 }

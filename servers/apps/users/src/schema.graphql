@@ -1,0 +1,119 @@
+directive @link(
+  url: String
+  as: String
+  for: link__Purpose
+  import: [link__Import]
+) on SCHEMA
+directive @key(
+  fields: federation__FieldSet!
+  resolvable: Boolean = true
+) on OBJECT | INTERFACE
+directive @requires(fields: federation__FieldSet!) on FIELD_DEFINITION
+directive @provides(fields: federation__FieldSet!) on FIELD_DEFINITION
+directive @external(reason: String) on OBJECT | FIELD_DEFINITION
+directive @tag(
+  name: String!
+) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION | SCHEMA
+directive @extends on OBJECT | INTERFACE
+directive @shareable on OBJECT | FIELD_DEFINITION
+directive @inaccessible on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
+directive @override(from: String!) on FIELD_DEFINITION
+directive @composeDirective(name: String) on SCHEMA
+directive @interfaceObject on OBJECT
+directive @oneOf on INPUT_OBJECT
+
+scalar DateTime
+scalar link__Import
+scalar federation__FieldSet
+scalar _Any
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum link__Purpose {
+  SECURITY
+  EXECUTION
+}
+
+type Avatar {
+  id: ID!
+  publicId: String!
+  url: String!
+  userId: ID!
+}
+
+type User {
+  id: ID!
+  name: String
+  email: String!
+  phoneNumber: String!
+  address: String
+  avatar: Avatar
+  role: Role!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Query {
+  getLoggedInUser: User
+  getAllUsers: [User!]!
+  getUserById(id: ID!): User
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+type Mutation {
+  register(input: RegisterInput!): RegisterResponse!
+  activateUser(input: ActivationInput!): ActivationResponse!
+  login(input: LoginInput!): LoginResponse!
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  deleteUser(id: ID!): Boolean!
+}
+
+input RegisterInput {
+  name: String
+  password: String!
+  email: String!
+  phoneNumber: String!
+}
+
+input ActivationInput {
+  activationToken: String!
+  activationCode: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+input UpdateUserInput {
+  name: String
+  email: String
+  phoneNumber: String
+  address: String
+  role: Role
+}
+
+type RegisterResponse {
+  user: User!
+  activationToken: String!
+}
+
+type ActivationResponse {
+  success: Boolean!
+  message: String!
+}
+
+type LoginResponse {
+  user: User!
+  token: String!
+}
+
+type _Service {
+  sdl: String
+}
+
+union _Entity = User | Avatar
